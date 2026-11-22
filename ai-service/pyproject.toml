@@ -1,0 +1,17 @@
+[project]
+name = "ai-content-generator-service"
+version = "1.0.0"
+description = "FastAPI AI service for AI Content Generator"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+    "pydantic>=2.10.0",
+    "google-genai>=0.1.1",
+    "python-dotenv>=1.0.1",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]

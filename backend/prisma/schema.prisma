@@ -1,0 +1,70 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String          @id @default(uuid())
+  name         String
+  email        String          @unique
+  passwordHash String          @map("password_hash")
+  createdAt    DateTime        @default(now()) @map("created_at")
+  updatedAt    DateTime        @updatedAt @map("updated_at")
+  contents     Content[]
+  logs         GenerationLog[]
+
+  @@map("users")
+}
+
+model Content {
+  id          String           @id @default(uuid())
+  userId      String           @map("user_id")
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  content     String
+  contentType String           @map("content_type")
+  tone        String
+  length      String
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  versions    ContentVersion[]
+  logs        GenerationLog[]
+
+  @@index([userId, updatedAt])
+  @@map("contents")
+}
+
+model ContentVersion {
+  id              String   @id @default(uuid())
+  contentId       String   @map("content_id")
+  contentRel      Content  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  versionNumber   Int      @map("version_number")
+  contentSnapshot String   @map("content")
+  changeType      String   @map("change_type") // generated / refined / edited / selected
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@unique([contentId, versionNumber])
+  @@map("content_versions")
+}
+
+model GenerationLog {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  contentId    String?  @map("content_id")
+  contentRel   Content? @relation(fields: [contentId], references: [id], onDelete: SetNull)
+  operation    String   // generate / refine / variations
+  modelName    String   @map("model_name")
+  inputTokens  Int?     @map("input_tokens")
+  outputTokens Int?     @map("output_tokens")
+  latencyMs    Int      @map("latency_ms")
+  status       String   // success / failure
+  errorCode    String?  @map("error_code")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("generation_logs")
+}

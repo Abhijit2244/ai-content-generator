@@ -1,0 +1,21 @@
+{
+  "name": "ai-content-generator-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise-grade AI Content Generator powered by Google Gemini",
+  "scripts": {
+    "start": "powershell -ExecutionPolicy Bypass -File ./start.ps1",
+    "stop": "powershell -ExecutionPolicy Bypass -File ./stop.ps1",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "test:backend": "npm --prefix backend test",
+    "test:ai": "cd ai-service && python -m pytest tests",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "test": "npm run test:backend && npm run test:ai",
+    "test:all": "npm run test && npm run test:e2e",
+    "test:report": "node test-reporter.mjs"
+  }
+}
