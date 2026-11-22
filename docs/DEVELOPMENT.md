@@ -1,17 +1,21 @@
 # Development Guide & Setup
 
+Comprehensive guide for local setup, development workflows, security practices, and testing.
+
+---
+
 ## Prerequisites
-- **Node.js**: v18+ (verified on v26+)
-- **Python**: v3.10+ (verified on v3.15+)
+- **Node.js**: v18+ (tested on v26+)
+- **Python**: v3.10+ (tested on v3.15+)
 - **Git**
-- **Google Gemini API Key** (from Google AI Studio)
+- **Google Gemini API Key**: Obtainable for free from [Google AI Studio](https://aistudio.google.com/)
 
 ---
 
 ## 1. Quick Start
 
-### 1.0 One-Click Start & Stop Scripts
-You can start all 3 services at once using the start scripts:
+### 1.1 One-Click Start & Stop Scripts
+You can start all 3 services at once:
 - **Windows PowerShell**: `.\start.ps1`
 - **Windows Command Prompt / Double-click**: `start.bat`
 - **Linux / macOS / Git Bash**: `./start.sh`
@@ -23,34 +27,45 @@ To stop all running services and free ports 8000, 5000, and 5173:
 - **Linux / macOS / Git Bash**: `./stop.sh`
 - **npm**: `npm stop`
 
+Once launched:
+- **Frontend App**: [http://localhost:5173](http://localhost:5173)
+- **Backend API**: [http://localhost:5000](http://localhost:5000) (Health: `/health`)
+- **AI Service Swagger API**: [http://localhost:8000/docs](http://localhost:8000/docs) (Health: `/health`)
+
 ---
 
-### Demo Accounts for Quick Testing
-The local SQLite database includes pre-seeded demo accounts:
+### 1.2 Pre-Seeded Factual Demo Accounts
+The SQLite database (`backend/prisma/dev.db`) is seeded with factual research documents with empirical benchmarks and citations:
 
-| Name | Email | Password | Pre-loaded Content |
+| Account | Email | Password | Pre-Loaded Factual Documents |
 | :--- | :--- | :--- | :--- |
-| **Alex Mercer** | `demo@example.com` | `Password123!` | Blog Article, Study Notes, Email Announcement |
-| **Sarah Chen** | `sarah@example.com` | `Password123!` | LinkedIn Post (to test tenant isolation) |
+| **Alex Mercer** | `demo@example.com` | `Password123!` | 1. 2025–2026 Enterprise GenAI Report (Stanford HAI & McKinsey)<br>2. SQLite WAL vs PostgreSQL Concurrency Benchmarks<br>3. FinTech 140M Trading Records Ingestion Case Study<br>4. Why 73% of Microservice Migrations Fail (DORA 2024)<br>5. Q4 2025 Executive Shareholder Briefing |
+| **Sarah Chen** | `sarah@example.com` | `Password123!` | 1. Neurobiology of Deep Work (Stanford/MIT Ultradian Focus)<br>2. NVIDIA Blackwell B200 vs Hopper H100 LLM Serving Benchmarks |
 
-*(You can also register any new account on the register page)*
+*Note: The seeding script runs idempotently. When you start or stop services, existing documents, user edits, and new accounts are strictly preserved.*
 
 ---
 
-### 1.1 Root Setup
-Copy environment files:
-```bash
-# In the ai-content-generator directory
-cp .env.example .env
-cp backend/.env.example backend/.env
-cp ai-service/.env.example ai-service/.env
-cp frontend/.env.example frontend/.env
+## 2. Manual Service Setup
+
+### 2.1 Environment Files Configuration
+Copy the template files into active `.env` files:
+```powershell
+# PowerShell
+Copy-Item .env.example .env
+Copy-Item backend/.env.example backend/.env
+Copy-Item ai-service/.env.example ai-service/.env
+Copy-Item frontend/.env.example frontend/.env
 ```
-*(On Windows PowerShell, use `Copy-Item .env.example .env`)*
 
----
+Ensure your `GEMINI_API_KEY` is placed inside `ai-service/.env`:
+```ini
+GEMINI_API_KEY=AIzaSy...your_actual_key_here
+GEMINI_MODEL=gemini-2.5-flash
+AI_SERVICE_TOKEN=dev-secret-internal-ai-service-token-32chars
+```
 
-### 1.2 Backend (Node.js + Express + Prisma)
+### 2.2 Backend (Node.js + Express + Prisma)
 ```bash
 cd backend
 npm install
@@ -58,61 +73,66 @@ npx prisma generate
 npx prisma db push
 npm run dev
 ```
-Backend runs on: `http://localhost:5000`
 
----
-
-### 1.3 AI Service (Python + FastAPI)
+### 2.3 AI Service (Python + FastAPI)
 ```bash
 cd ai-service
-# Create and activate virtual environment (optional but recommended)
+# Recommended virtual environment
 python -m venv .venv
-# On Windows:
-.venv\Scripts\activate
-# On macOS/Linux:
+# Activate on Windows:
+.\.venv\Scripts\activate
+# Activate on Linux/macOS:
 source .venv/bin/activate
 
 pip install -r requirements.txt
 python -m uvicorn app.main:app --reload --port 8000
 ```
-FastAPI runs on: `http://localhost:8000`
-Swagger UI / OpenAPI documentation: `http://localhost:8000/docs`
 
----
-
-### 1.4 Frontend (React + Vite)
+### 2.4 Frontend (React 18 + Vite + Tailwind CSS)
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-Frontend runs on: `http://localhost:5173`
 
 ---
 
-## 2. Running Tests
+## 3. Testing Guide (130 Unified Tests)
 
-### Backend Tests
+The testing architecture provides multi-tier verification with **zero database tampering**:
+
+```powershell
+# From project root: executes all 130 tests across Backend, AI Service, and Playwright Chromium
+npm run test:report
+```
+
+### 3.1 Backend Tests (Vitest — 77 Tests)
+Includes unit use case tests, in-memory repository tests, API integration tests with ephemeral SQLite instances, and dedicated security attack tests:
 ```bash
 cd backend
 npm test
 ```
 
-### AI Service Tests
+### 3.2 AI Service Tests (Pytest — 33 Tests)
+Includes endpoint validation, prompt templates, refinement strategies, token validation, and prompt injection guardrails:
 ```bash
 cd ai-service
-pytest
+pytest -v
 ```
 
-### Frontend Tests / Build
+### 3.3 Frontend End-to-End Tests (Playwright Chromium — 20 Tests)
+Includes authentication, generator workspace, 3-way Markdown/Split view toggling, history library, quick preview modal, and client-side XSS neutralization:
 ```bash
 cd frontend
-npm run build
+npx playwright test
 ```
 
 ---
 
-## 3. Key Architectural Rules
-1. **Never put Gemini keys in frontend or backend!** It lives solely in `ai-service/.env`.
-2. **All content queries require authenticated user ID**: database-level isolation.
-3. **Structured Prompts**: Content templates isolate instructions from untrusted user reference inputs.
+## 4. Key Architectural & Security Rules
+
+1. **Zero Secrets Policy**: The `GEMINI_API_KEY` must **never** be exposed to the client or the Node backend. It resides solely within `ai-service/.env`.
+2. **Tenant Privacy by Design**: All database queries for content and versions must enforce `where: { id, userId }`.
+3. **Input & Output Sanitization**: All user inputs and AI outputs are filtered through `sanitizeString()` to strip dangerous HTML, `<script>`, `<iframe>`, inline event handlers, and null bytes (`\0`).
+4. **Timing Attack Neutralization**: The login use case executes a constant-time dummy bcrypt comparison when an email is not registered to prevent account enumeration.
+5. **Prompt Injection Guardrails**: Prompts isolate untrusted reference text in explicit XML tags (`<untrusted_reference_material>`) and enforce system directives forbidding command overrides or credential disclosure.
